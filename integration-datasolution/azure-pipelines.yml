@@ -1,0 +1,89 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+  branches:
+    include:
+    - master
+  paths:
+    include:
+    - integration-datasolution/dw-packages
+    exclude:
+    - iac-datasolution
+    - setup-datasolution
+
+stages:
+- stage: deployToTest
+  jobs:
+  - job: deployToTest_dbobjects
+    pool:
+      vmImage: 'vs2017-win2016'
+    steps:
+    - task: SqlAzureDacpacDeployment@1
+      inputs:
+        azureSubscription: 'ado_luis_subscription_connection'
+        AuthenticationType: 'server'
+        ServerName: 'devopsdemotestserver.database.windows.net'
+        DatabaseName: 'devOpsDemoTestDW'
+        SqlUsername: 'devOpsDWAdmin'
+        SqlPassword: 'abcd1234#'
+        deployType: 'SqlTask'
+        SqlFile: 'integration-datasolution/dw-packages/factsales.ddl.sql'
+        IpDetectionMethod: 'AutoDetect'
+    - task: SqlAzureDacpacDeployment@1
+      inputs:
+        azureSubscription: 'ado_luis_subscription_connection'
+        AuthenticationType: 'server'
+        ServerName: 'devopsdemotestserver.database.windows.net'
+        DatabaseName: 'devOpsDemoTestDW'
+        SqlUsername: 'devOpsDWAdmin'
+        SqlPassword: 'abcd1234#'
+        deployType: 'SqlTask'
+        SqlFile: 'integration-datasolution/dw-packages/factsales.deploy.sql'
+        IpDetectionMethod: 'AutoDetect'
+  - job: deployToTest_run_some_tests
+    dependsOn: deployToTest_dbobjects
+    pool:
+      vmImage: 'ubuntu-16.04'
+      steps:
+      - script: echo Running some validation scripts... All OK!
+        displayName: 'Test job'
+
+- stage: deployToProduction
+  dependsOn: 
+    - deployToTest
+  jobs:
+  - deployment: deployToProductionFinal
+    environment: production
+  - job: deployToProd_dbobjects
+    dependsOn: deployToProductionFinal
+    pool:
+      vmImage: 'vs2017-win2016'
+    steps:
+    - task: SqlAzureDacpacDeployment@1
+      inputs:
+        azureSubscription: 'ado_luis_subscription_connection'
+        AuthenticationType: 'server'
+        ServerName: 'devopsdemoprodserver.database.windows.net'
+        DatabaseName: 'devOpsDemoProdDW'
+        SqlUsername: 'devOpsDWAdmin'
+        SqlPassword: 'abcd1234#'
+        deployType: 'SqlTask'
+        SqlFile: 'integration-datasolution/dw-packages/factsales.ddl.sql'
+        IpDetectionMethod: 'AutoDetect'
+    - task: SqlAzureDacpacDeployment@1
+      inputs:
+        azureSubscription: 'ado_luis_subscription_connection'
+        AuthenticationType: 'server'
+        ServerName: 'devopsdemoprodserver.database.windows.net'
+        DatabaseName: 'devOpsDemoProdDW'
+        SqlUsername: 'devOpsDWAdmin'
+        SqlPassword: 'abcd1234#'
+        deployType: 'SqlTask'
+        SqlFile: 'integration-datasolution/dw-packages/factsales.deploy.sql'
+        IpDetectionMethod: 'AutoDetect'
+   
+
+
