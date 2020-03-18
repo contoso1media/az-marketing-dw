@@ -1,0 +1,1 @@
+## this is configuration type 1

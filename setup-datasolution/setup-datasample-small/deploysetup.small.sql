@@ -1,0 +1,1 @@
+/* Execute sql script to deploy a small data sample
